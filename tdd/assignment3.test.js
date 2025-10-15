@@ -5,15 +5,18 @@ const path = require("path");
 
 let logSpy;
 let errorSpy;
+let warnSpy;
 
 beforeAll(() => {
 	logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
 	errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+	warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 });
 
 afterAll(() => {
 	logSpy.mockRestore();
 	errorSpy.mockRestore();
+	warnSpy.mockRestore();
 });
 
 describe("Middleware Integration", () => {
@@ -23,7 +26,7 @@ describe("Middleware Integration", () => {
 			beforeAll(async () => {
 				res = await request(app)
 					.post("/adopt")
-					.send({ dogName: "Pickles", name: "Ellen", email: "ellen@codethedream.com" })
+					.send({ dogName: "Sweet Pea", name: "Ellen", email: "ellen@codethedream.com" })
 					.set("Content-Type", "application/json");
 			});
 
@@ -100,6 +103,159 @@ describe("Middleware Integration", () => {
 
 			test("responds with 'Internal Server Error'", () => {
 				expect(res.body.error).toBe("Internal Server Error");
+			});
+		});
+	});
+
+	describe("[Enhanced Middleware Features]", () => {
+		describe("[Request Timing]", () => {
+			test("logs request duration", async () => {
+				await request(app).get("/dogs");
+				expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/\[.*\]: GET \/dogs \(.+\) - \d+ms/));
+			});
+
+			test("warns for slow requests", async () => {
+				await request(app).get("/slow");
+				expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/WARNING: Slow request detected/));
+			});
+		});
+
+		describe("[Security Headers]", () => {
+			let res;
+
+			beforeAll(async () => {
+				res = await request(app).get("/dogs");
+			});
+
+			test("sets X-Content-Type-Options header", () => {
+				expect(res.headers["x-content-type-options"]).toBe("nosniff");
+			});
+
+			test("sets X-Frame-Options header", () => {
+				expect(res.headers["x-frame-options"]).toBe("DENY");
+			});
+
+			test("sets X-XSS-Protection header", () => {
+				expect(res.headers["x-xss-protection"]).toBe("1; mode=block");
+			});
+		});
+
+		describe("[Request Size Limiting]", () => {
+			test("accepts requests within size limit", async () => {
+				const res = await request(app)
+					.post("/adopt")
+					.send({ dogName: "Sweet Pea", name: "Test User", email: "test@example.com" })
+					.set("Content-Type", "application/json");
+				expect(res.status).toBe(201);
+			});
+		});
+
+		describe("[Content-Type Validation]", () => {
+			test("rejects POST requests without JSON content-type", async () => {
+				const res = await request(app)
+					.post("/adopt")
+					.send(JSON.stringify({ dogName: "Sweet Pea", name: "Test User", email: "test@example.com" }))
+					.set("Content-Type", "text/plain");
+				expect(res.status).toBe(400);
+				expect(res.body.error).toMatch(/Content-Type must be application\/json/);
+			});
+
+			test("allows GET requests without content-type validation", async () => {
+				const res = await request(app).get("/dogs");
+				expect(res.status).toBe(200);
+			});
+		});
+
+		describe("[404 Handler]", () => {
+			let res;
+
+			beforeAll(async () => {
+				res = await request(app).get("/nonexistent-route");
+			});
+
+			test("responds with status 404", () => {
+				expect(res.status).toBe(404);
+			});
+
+			test("responds with error message", () => {
+				expect(res.body.error).toBe("Route not found");
+			});
+
+			test("includes requestId in 404 response", () => {
+				expect(res.body.requestId).toBeDefined();
+			});
+		});
+	});
+
+	describe("[Advanced Error Handling]", () => {
+		describe("[Custom Error Classes]", () => {
+			describe("[ValidationError]", () => {
+				let res;
+
+				beforeAll(async () => {
+					res = await request(app)
+						.post("/adopt")
+						.send({ dogName: "Sweet Pea" }) // Missing required fields
+						.set("Content-Type", "application/json");
+				});
+
+				test("responds with status 400", () => {
+					expect(res.status).toBe(400);
+				});
+
+				test("responds with validation error message", () => {
+					expect(res.body.error).toMatch(/Missing required fields/);
+				});
+
+				test("includes requestId", () => {
+					expect(res.body.requestId).toBeDefined();
+				});
+			});
+
+			describe("[NotFoundError]", () => {
+				let res;
+
+				beforeAll(async () => {
+					res = await request(app)
+						.post("/adopt")
+						.send({ dogName: "Nonexistent Dog", name: "Test User", email: "test@example.com" })
+						.set("Content-Type", "application/json");
+				});
+
+				test("responds with status 404", () => {
+					expect(res.status).toBe(404);
+				});
+
+				test("responds with not found error message", () => {
+					expect(res.body.error).toMatch(/not found or not available/);
+				});
+
+				test("includes requestId", () => {
+					expect(res.body.requestId).toBeDefined();
+				});
+			});
+
+			describe("[Error Logging]", () => {
+				test("logs validation errors as WARN level", async () => {
+					await request(app)
+						.post("/adopt")
+						.send({ dogName: "Sweet Pea" })
+						.set("Content-Type", "application/json");
+					expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/WARN: ValidationError/));
+				});
+
+				test("logs not found errors as WARN level", async () => {
+					await request(app)
+						.post("/adopt")
+						.send({ dogName: "Nonexistent Dog", name: "Test User", email: "test@example.com" })
+						.set("Content-Type", "application/json");
+					expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/WARN: NotFoundError/));
+				});
+
+				test("logs server errors as ERROR level", async () => {
+					await request(app).get("/error");
+					expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/ERROR: Error/));
+				});
 			});
 		});
 	});
