@@ -195,7 +195,7 @@ describe("Middleware Integration", () => {
 				beforeAll(async () => {
 					res = await request(app)
 						.post("/adopt")
-						.send({ dogName: "Sweet Pea" }) // Missing required fields
+						.send({ dogName: "Sweet Pea" }) // Intentional Missing required fields
 						.set("Content-Type", "application/json");
 				});
 
