@@ -297,3 +297,8 @@ git checkout -b assignment2
 - The repository is structured for cloud deployment.
 
 ## Good Luck With the Class, and Happy Coding!
+
+## License
+
+Copyright (c) 2025 Code the Dream
+This project is licensed under the MIT License – see the [LICENSE](./LICENSE) file for details.
