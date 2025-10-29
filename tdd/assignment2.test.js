@@ -164,18 +164,18 @@ describe('Assignment 2: Event Handlers, HTTP Servers, and Express', () => {
 
   describe('Task 4: Middleware', () => {
     test('middleware/error-handler.js should exist', () => {
-      const errorHandlerPath = path.join(assignmentDir, 'middleware', 'error-handler.js');
+      const errorHandlerPath = path.join(rootDir, 'middleware', 'error-handler.js');
       expect(fs.existsSync(errorHandlerPath)).toBe(true);
     });
 
     test('middleware/not-found.js should exist', () => {
-      const notFoundPath = path.join(assignmentDir, 'middleware', 'not-found.js');
+      const notFoundPath = path.join(rootDir, 'middleware', 'not-found.js');
       expect(fs.existsSync(notFoundPath)).toBe(true);
     });
 
     test('middleware files should be properly structured', () => {
-      const errorHandlerPath = path.join(assignmentDir, 'middleware', 'error-handler.js');
-      const notFoundPath = path.join(assignmentDir, 'middleware', 'not-found.js');
+      const errorHandlerPath = path.join(rootDir, 'middleware', 'error-handler.js');
+      const notFoundPath = path.join(rootDir, 'middleware', 'not-found.js');
       
       expect(() => require(errorHandlerPath)).not.toThrow();
       expect(() => require(notFoundPath)).not.toThrow();
