@@ -57,16 +57,16 @@ const server = http.createServer((req, res) => {
                 res.writeHead(400, { 'Content-Type': 'application/json' })
                 res.end(
                     JSON.stringify({
-                        message: 'Invalid JSON'
+                        message: 'Invalid JSON.'
                     })
                 )
             }
         })
-    } else if (req.url !== '/time' || req.url !== '/timePage' || req.url !== '/echo') {
+    } else {
         res.writeHead(404, { 'Content-Type': 'application/json' })
         res.end(
             JSON.stringify({
-                message: 'That route is not available'
+                message: 'That route is not available.'
             })
         )
     }

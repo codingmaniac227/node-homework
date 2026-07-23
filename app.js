@@ -18,7 +18,7 @@ app.post('/testpost', (req, res) => {
 
 app.all(/(.*)/, (req, res) => {
     res.status(404).json({
-        message: `No Route found for ${req.method} ${req.path}`
+        message: `No route found for ${req.method} ${req.path}`
     })
 })
 
