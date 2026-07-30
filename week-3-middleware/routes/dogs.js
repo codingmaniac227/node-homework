@@ -1,6 +1,6 @@
 const express = require("express");
 const dogs = require("../dogData");
-const { ValidationError, NotFoundError, UnauthorizedError } = require('../error')
+const { ValidationError, NotFoundError, UnauthorizedError } = require('../errors')
 
 const router = express.Router();
 

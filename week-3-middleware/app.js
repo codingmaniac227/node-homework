@@ -39,10 +39,8 @@ function setHeaders(req, res, next) {
 function postReqContentTypeCheck(req, res, next) {
   if (
       !req.is('application/json') &&
-      req.method === 'POST' &&
-      req.path === '/adopt'
+      req.method === 'POST'
   ) {
-    console.log('This is the middleware running not the error handler')
     return res.status(400).json({
       error: 'Content-Type must be application/json',
       requestId: req.requestId
@@ -60,7 +58,10 @@ function errorHandler(err, req, res, next) {
   }
 
   return res.status(statusCode).json({
-    error: statusCode === 500 ? 'Internal Server Error' : err.message,
+    error:
+        statusCode >= 500
+        ? 'Internal Server Error'
+        : err.message,
     requestId: req.requestId
   })
 }
