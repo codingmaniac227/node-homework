@@ -66,11 +66,13 @@ function errorHandler(err, req, res, next) {
   })
 }
 
+
+app.use(express.json({ limit: '1mb' }))
 app.use(reqID)
 app.use(log)
 app.use(setHeaders)
 app.use(postReqContentTypeCheck)
-app.use(express.json({ limit: '1mb' }))
+
 
 
 app.use("/", dogsRouter);// Do not remove this line
