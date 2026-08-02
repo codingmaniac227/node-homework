@@ -13,14 +13,14 @@ router.post("/adopt", (req, res) => {
 
   const dog = dogs.find(dog => dog.name === dogName)
 
-  if (!dog) {
-    throw new NotFoundError('not found or not available')
-  } else if (
+  if (
       !name?.trim() ||
       !email?.trim() ||
       !dogName?.trim()
   ) {
     throw new ValidationError('Missing required fields')
+  } else if (!dog) {
+    throw new NotFoundError('not found or not available')
   }
     res.status(201).json({
       message: `Adoption request received. We will contact you at ${email} for further details.`,

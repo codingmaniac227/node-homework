@@ -22,10 +22,7 @@ function logon(req, res) {
 
 
     if (!user) {
-        return res.status(401).json({
-            error: 'User not found',
-            reqID: req.requestId
-        })
+        return res.status(401).end()
     }
 
     global.user_id = user.id
@@ -40,9 +37,7 @@ function logon(req, res) {
 function logoff(req, res) {
     global.user_id = null
 
-    return res.status(200).json({
-        message: 'Logged off successfully'
-    })
+    return res.status(200).end()
 }
 
 module.exports = { register, logon, logoff }
