@@ -1,9 +1,30 @@
+const { userSchema } = require("../validation/userSchema");
+const { ValidationError, UnauthorizedError } = require('../middleware/errors')
+const { hashPassword, comparePassword } = require('../utils/hashPassword')
 
-function register(req, res) {
-    const { name, email, password } = req.body;
-    let user = { id: global.users.length + 1, name, email, password };
+async function register(req, res) {
+    if (!req.body)  {
+        req.body = {};
+    }
+
+    const { error, value } = userSchema.validate(req.body, {
+        abortEarly: false
+    })
+
+    if (error) {
+        throw new ValidationError(`User validation failed: ${error}`)
+    }
+
+
+    const { name, email, password } = value
+
+    const hashedPassword = await hashPassword(password)
+
+
+    let user = { id: global.users.length + 1, name, email, hashedPassword };
     global.users.push(user)
     global.user_id = user.id
+
 
     res.status(201).json({
         name: name,
@@ -11,22 +32,28 @@ function register(req, res) {
     })
 }
 
-function logon(req, res) {
+async function logon(req, res) {
     const { email, password } = req.body;
 
     const user = global.users.find(
         (user) =>
-            user.email === email &&
-            user.password === password
+            user.email === email
     )
-
 
     if (!user) {
         return res.status(401).end()
     }
 
-    global.user_id = user.id
+    const goodCredentials = user && await comparePassword(
+        password,
+        user.hashedPassword,
+    )
 
+    if (!goodCredentials) {
+        throw new UnauthorizedError(`Invalid password`)
+    }
+
+    global.user_id = user.id
 
     return res.status(200).json({
         name: user.name,
