@@ -38,6 +38,10 @@ function index(req, res) {
     const user = req.user
     const userTasks = global.tasks.filter(task => task.userId === user.email)
 
+    if (userTasks.length === 0) {
+        throw new NotFoundError('User tasks not found')
+    }
+
     const userTasksFiltered = []
 
     for (const tasks of userTasks) {
@@ -88,6 +92,10 @@ function update(req, res) {
     }
 
     const taskId = parseInt(req.params.id)
+    if (Number.isNaN(taskId)) {
+        throw new ValidationError(`Invalid task id`)
+    }
+
     const user = req.user
     const task = global.tasks.find((task) => task.id === taskId && task.userId === user.email)
 
@@ -107,6 +115,10 @@ function update(req, res) {
 
 function deleteTask(req, res) {
     const taskId = parseInt(req.params.id)
+    if (Number.isNaN(taskId)) {
+        throw new ValidationError(`Invalid task id`)
+    }
+
     const user = req.user
     const taskIndex = global.tasks.findIndex(task => task.id === taskId && task.userId === user.email)
 

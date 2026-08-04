@@ -23,7 +23,7 @@ async function register(req, res) {
 
     let user = { id: global.users.length + 1, name, email, hashedPassword };
     global.users.push(user)
-    global.user_id = user.id
+    global.user_id = user
 
 
     res.status(201).json({
@@ -53,7 +53,7 @@ async function logon(req, res) {
         throw new UnauthorizedError(`Invalid password`)
     }
 
-    global.user_id = user.id
+    global.user_id = user
 
     return res.status(200).json({
         name: user.name,
