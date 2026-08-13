@@ -4,10 +4,9 @@ const taskRouter = require('./routes/taskRoutes')
 const notFound = require('./middleware/not-found.js')
 const errorHandler = require('./middleware/error-handler')
 const authMiddleware = require('./middleware/auth')
+const pool = require('./db/pg-pool')
 
 global.user_id = null
-global.users = []
-global.tasks = []
 
 
 const app = express()
@@ -16,6 +15,15 @@ const app = express()
 app.use(express.json())
 app.use('/api/users', userRouter)
 app.use('/api/tasks', authMiddleware, taskRouter)
+
+app.get('/health', async (req, res) => {
+    try {
+        await pool.query('SELECT 1')
+        res.json({ status: 'ok', db: 'connected' })
+    } catch (err) {
+        res.status(500).json({ message: `db not connected, error: ${err.message}` })
+    }
+})
 
 
 app.use(notFound)
@@ -35,5 +43,14 @@ app.use(errorHandler)
         }
         process.exit(1)
     })
+
+    const shutdown = async () => {
+        server.close()
+        await pool.end()
+        process.exit(0)
+    }
+
+    process.on('SIGINT', shutdown)
+    process.on('SIGTERM', shutdown)
 
 module.exports = { app, server }

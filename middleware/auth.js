@@ -5,14 +5,5 @@ module.exports = (req, res, next) => {
         })
     }
 
-    const user = global.users.find(user => user.id === global.user_id)
-
-    if (!user) {
-        return res.status(401).send({
-            message: 'Unauthorized'
-        })
-    }
-
-    req.user = user
     next()
 }
