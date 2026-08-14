@@ -27,10 +27,6 @@ async function index(req, res) {
         [global.user_id]
     );
 
-    if (tasks.rows.length === 0) {
-        return res.status(404).json({ message: "User tasks not found" });
-    }
-
     return res.status(200).json(tasks.rows);
 }
 
