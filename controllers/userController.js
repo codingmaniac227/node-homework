@@ -1,77 +1,76 @@
 const { userSchema } = require("../validation/userSchema");
+const { ValidationError, UnauthorizedError } = require("../middleware/errors");
+const respondWithError = require("../middleware/respond-with-error");
 const { hashPassword, comparePassword } = require("../utils/hashPassword");
-const pool = require("../db/pg-pool");
+const prisma = require("../db/prisma");
 
 async function register(req, res, next) {
-    if (!req.body) {
-        req.body = {};
-    }
-
-    const { error, value } = userSchema.validate(req.body, {
-        abortEarly: false,
-    });
-
-    if (error) {
-        return res.status(400).json({
-            message: "Validation failed",
-            details: error.details,
-        });
-    }
-
-    value.hashed_password = await hashPassword(value.password);
-
-    let user = null;
     try {
-        user = await pool.query(
-            `INSERT INTO users (email, name, hashed_password)
-      VALUES ($1, $2, $3) RETURNING id, email, name`,
-            [value.email, value.name, value.hashed_password]
-        );
-    } catch (e) {
-        if (e.code === "23505") {
-            return res.status(400).json({
-                message: "Email already registered",
-            });
+        if (!req.body) {
+            req.body = {};
         }
-        return next(e);
+
+        const { error, value } = userSchema.validate(req.body, {
+            abortEarly: false,
+        });
+
+        if (error) {
+            const details = error.details.map((detail) => detail.message);
+            throw new ValidationError("User validation failed.", details);
+        }
+
+        const { email, name, password } = value;
+        const hashedPassword = await hashPassword(password);
+
+        const user = await prisma.user.create({
+            data: {
+                email,
+                name,
+                hashedPassword,
+            },
+        });
+
+        global.user_id = user.id;
+
+        return res.status(201).json({
+            name: user.name,
+            email: user.email,
+        });
+    } catch (err) {
+        if (err.name === "PrismaClientKnownRequestError" && err.code === "P2002") {
+            return respondWithError(res, new ValidationError("Email already registered"), next);
+        }
+
+        return respondWithError(res, err, next);
     }
-
-    global.user_id = user.rows[0].id;
-
-    return res.status(201).json({
-        name: user.rows[0].name,
-        email: user.rows[0].email,
-    });
 }
 
-async function logon(req, res) {
-    const { email, password } = req.body;
+async function logon(req, res, next) {
+    try {
+        let { email, password } = req.body;
 
-    const result = await pool.query("SELECT * FROM users WHERE email = $1", [
-        email,
-    ]);
+        email = email.toLowerCase();
+        const user = await prisma.user.findUnique({ where: { email } });
 
-    if (result.rows.length === 0) {
-        return res.status(401).json({
-            message: "Authentication failed",
+        if (!user) {
+            throw new UnauthorizedError("Authentication failed");
+        }
+
+        const goodCredentials = await comparePassword(password, user.hashedPassword);
+
+        if (!goodCredentials) {
+            throw new UnauthorizedError("Authentication failed");
+        }
+
+        global.user_id = user.id;
+
+        return res.status(200).json({
+            name: user.name,
+            email: user.email,
         });
+    } catch (err) {
+        return respondWithError(res, err, next);
     }
-
-    const user = result.rows[0];
-    const goodCredentials = await comparePassword(password, user.hashed_password);
-
-    if (!goodCredentials) {
-        return res.status(401).json({
-            message: "Authentication failed",
-        });
-    }
-
-    global.user_id = user.id;
-
-    return res.status(200).json({
-        name: user.name,
-        email: user.email,
-    });
 }
 
 function logoff(req, res) {
